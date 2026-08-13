@@ -1,71 +1,71 @@
 # Pet Project
 
-Навчальний пет-проєкт на FastAPI + SQLAlchemy: API для обліку відправлень (`Shipment`) та товарів у них (`Item`).
+A learning pet project built with FastAPI + SQLAlchemy: an API for tracking shipments (`Shipment`) and the items within them (`Item`).
 
-Проєкт на ранній стадії розробки, пишеться поступово. CI/лінтера/тестового раннера поки що немає.
+The project is at an early stage and is being built incrementally. There's no CI/linter/test runner yet.
 
-## Стек
+## Tech stack
 
 - Python >=3.12
-- Poetry — керування залежностями (src-layout, пакет `pet_project` у `src/`)
-- FastAPI — веб-фреймворк
-- Uvicorn — ASGI-сервер
+- Poetry — dependency management (src-layout, `pet_project` package under `src/`)
+- FastAPI — web framework
+- Uvicorn — ASGI server
 - SQLAlchemy 2.x — ORM
-- SQLite — локальна БД (`pet_project.db`, у git не потрапляє)
+- SQLite — local database (`pet_project.db`, gitignored)
 
-## Встановлення
+## Installation
 
 ```bash
 poetry install
 ```
 
-## Запуск
+## Running
 
 ```bash
 poetry run uvicorn pet_project.main:app --reload --port 8000
 ```
 
-Після запуску:
-- `http://127.0.0.1:8000/` — корінь API
-- `http://127.0.0.1:8000/docs` — автоматична Swagger UI
+Once running:
+- `http://127.0.0.1:8000/` — API root
+- `http://127.0.0.1:8000/docs` — auto-generated Swagger UI
 
-Таблиці в БД створюються автоматично при старті (`Base.metadata.create_all`). Міграцій (Alembic) немає — якщо змінюється структура існуючої таблиці, потрібно видалити локальний файл `pet_project.db` і перезапустити сервер (не просто дочекатись `--reload`, а повністю зупинити і запустити процес заново).
+Database tables are created automatically on startup (`Base.metadata.create_all`). There's no migration tool (Alembic) — if the schema of an existing table changes, delete the local `pet_project.db` file and restart the server (fully stop and start the process, not just rely on `--reload`).
 
-## Структура
+## Structure
 
 ```
 src/pet_project/
 ├── database.py   # engine, SessionLocal, Base, get_db()
-├── models.py     # ORM-моделі: Shipment, Item
-├── schemas.py    # Pydantic-схеми (Base/Create/Out)
-├── crud.py       # функції читання/запису в БД
-└── main.py       # FastAPI-застосунок і роути
-tests/            # поки що порожній
+├── models.py     # ORM models: Shipment, Item
+├── schemas.py    # Pydantic schemas (Base/Create/Out)
+├── crud.py       # DB read/write functions
+└── main.py       # FastAPI app and routes
+tests/            # currently empty
 ```
 
-- **Shipment** (1) → **Item** (багато): `Item.shipment_id` — зовнішній ключ з `ondelete="CASCADE"` на рівні БД + `cascade="all, delete-orphan"` на рівні ORM. Видалення відправлення видаляє всі її товари.
-- Товар не може існувати без відправлення, тому створюється через вкладений роут, а не окремий `POST /items`.
+- **Shipment** (1) → **Item** (many): `Item.shipment_id` is a foreign key with `ondelete="CASCADE"` at the DB level plus `cascade="all, delete-orphan"` at the ORM level. Deleting a shipment deletes all of its items.
+- An item can't exist without a shipment, so it's created via a nested route rather than a standalone `POST /items`.
 
 ## API
 
 ### Shipments
 
-| Метод  | Шлях              | Опис                                  |
-|--------|-------------------|---------------------------------------|
-| POST   | `/shipments`      | створити відправлення                 |
-| GET    | `/shipments`      | список усіх відправлень               |
-| GET    | `/shipments/{id}` | отримати одне відправлення            |
-| PUT    | `/shipments/{id}` | оновити відправлення                  |
-| DELETE | `/shipments/{id}` | видалити відправлення (і його товари) |
+| Method | Path              | Description                       |
+|--------|-------------------|-----------------------------------|
+| POST   | `/shipments`      | create a shipment                 |
+| GET    | `/shipments`      | list all shipments                |
+| GET    | `/shipments/{id}` | get a single shipment             |
+| PUT    | `/shipments/{id}` | update a shipment                 |
+| DELETE | `/shipments/{id}` | delete a shipment (and its items) |
 
 ### Items
 
-| Метод  | Шлях                             | Опис                          |
-|--------|----------------------------------|-------------------------------|
-| POST   | `/shipments/{shipment_id}/items` | створити товар у відправленні |
-| GET    | `/items`                         | список усіх товарів           |
-| GET    | `/items/{id}`                    | отримати один товар           |
-| PUT    | `/items/{id}`                    | оновити товар                 |
-| DELETE | `/items/{id}`                    | видалити товар                |
+| Method | Path                             | Description                      |
+|--------|----------------------------------|----------------------------------|
+| POST   | `/shipments/{shipment_id}/items` | create an item within a shipment |
+| GET    | `/items`                         | list all items                   |
+| GET    | `/items/{id}`                    | get a single item                |
+| PUT    | `/items/{id}`                    | update an item                   |
+| DELETE | `/items/{id}`                    | delete an item                   |
 
-Усі відповіді повертаються через Pydantic-схеми (`ShipmentOut`, `ItemOut`), відсутній id повертає 404.
+All responses are returned via Pydantic schemas (`ShipmentOut`, `ItemOut`); a missing id returns 404.
